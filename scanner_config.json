@@ -1,0 +1,22 @@
+{
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "BNBUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "DOGEUSDT",
+    "AVAXUSDT"
+  ],
+  "interval": "1h",
+  "score_threshold": 7,
+  "alert_enabled": false,
+  "mtf_enabled": true,
+  "mtf_timeframes": ["4h", "1h", "15m"],
+  "orderbook_enabled": true,
+  "orderbook_depth": 50,
+  "patterns_enabled": true,
+  "log_to_file": false,
+  "log_file": "scanner_log.txt"
+}
