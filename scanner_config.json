@@ -11,7 +11,7 @@
   ],
   "interval": "1h",
   "score_threshold": 7,
-  "alert_enabled": false,
+  "alert_enabled": true,
   "mtf_enabled": true,
   "mtf_timeframes": ["4h", "1h", "15m"],
   "orderbook_enabled": true,

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Backtest GUI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { margin-bottom: 20px; text-align: center; font-size: 2.5em; background: linear-gradient(45deg, #00f0ff, #ff6b9d); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .panel { background: #2d2d44; border: 1px solid #00f0ff; border-radius: 8px; padding: 20px; }
+        .panel h2 { margin-bottom: 15px; color: #00f0ff; font-size: 1.3em; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #88ccee; font-weight: 500; }
+        input, select { width: 100%; padding: 10px; background: #1e1e2e; border: 1px solid #444; border-radius: 4px; color: #e0e0e0; }
+        input:focus, select:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 5px #00f0ff; }
+        
+        .button-group { display: flex; gap: 10px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            background: linear-gradient(45deg, #00f0ff, #00ccff);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .stat { background: #1e1e2e; padding: 12px; border-left: 3px solid #00f0ff; border-radius: 4px; }
+        .stat-label { font-size: 0.85em; color: #999; }
+        .stat-value { font-size: 1.5em; font-weight: bold; color: #00f0ff; margin-top: 5px; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        th { background: #1e1e2e; padding: 12px; text-align: left; color: #00f0ff; border-bottom: 2px solid #00f0ff; }
+        td { padding: 10px; border-bottom: 1px solid #444; }
+        tr:hover { background: #333344; }
+        
+        .win { color: #00ff88; }
+        .loss { color: #ff4466; }
+        .neutral { color: #ffaa00; }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #00f0ff;
+            display: none;
+        }
+        .loading.active { display: block; }
+        
+        .spinner {
+            border: 3px solid #444;
+            border-top: 3px solid #00f0ff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .error {
+            background: #553333;
+            border: 1px solid #ff4466;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        .error.show { display: block; }
+        
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        .chart-container { position: relative; height: 300px; margin: 20px 0; }
+        
+        @media (max-width: 1200px) {
+            .panels { grid-template-columns: 1fr; }
+            .results-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Trading Backtest GUI</h1>
+        
+        <div class="panels">
+            <!-- Single Backtest Panel -->
+            <div class="panel">
+                <h2>⚙️ Single Backtest</h2>
+                <div class="form-group">
+                    <label>Symbol</label>
+                    <select id="symbol">
+                        <option>BTCUSDT</option>
+                        <option>ETHUSDT</option>
+                        <option>SOLUSDT</option>
+                        <option>BNBUSDT</option>
+                        <option>XRPUSDT</option>
+                        <option>DOGEUSDT</option>
+                        <option>AVAXUSDT</option>
+                        <option>LINKUSDT</option>
+                        <option>ARBUSDT</option>
+                        <option>OPUSDT</option>
+                        <option>PEPEUSDT</option>
+                        <option>WIFUSDT</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Interval</label>
+                    <select id="interval">
+                        <option>1h</option>
+                        <option>4h</option>
+                        <option>1d</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lookback Days</label>
+                    <input type="number" id="days" value="90" min="1" max="365">
+                </div>
+                <div class="form-group">
+                    <label>Min Score (entry threshold)</label>
+                    <input type="number" id="minScore" value="7" min="1" max="10">
+                </div>
+                <div class="form-group">
+                    <label>SL ATR Multiplier</label>
+                    <input type="number" id="slMult" value="1.5" min="0.5" max="3" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>TP ATR Multiplier</label>
+                    <input type="number" id="tpMult" value="2.0" min="0.5" max="5" step="0.5">
+                </div>
+                <div class="button-group">
+                    <button onclick="runBacktest()">▶️ Run Backtest</button>
+                    <button onclick="runOptimize()">🔍 Optimize</button>
+                </div>
+            </div>
+            
+            <!-- Batch Panel -->
+            <div class="panel">
+                <h2>📊 Batch Test</h2>
+                <div class="form-group">
+                    <label>Interval</label>
+                    <select id="batchInterval">
+                        <option>1h</option>
+                        <option>4h</option>
+                        <option>1d</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Lookback Days</label>
+                    <input type="number" id="batchDays" value="90" min="1" max="365">
+                </div>
+                <p style="font-size: 0.9em; color: #999; margin-bottom: 15px;">
+                    Tests all 12 symbols with default params
+                </p>
+                <button onclick="runBatch()" style="width: 100%;">▶️ Run Batch</button>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Running backtest...</div>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <!-- Results Section -->
+        <div id="results"></div>
+    </div>
+    
+    <script>
+        const showError = (msg) => {
+            const err = document.getElementById('error');
+            err.textContent = msg;
+            err.classList.add('show');
+            setTimeout(() => err.classList.remove('show'), 5000);
+        };
+        
+        const showLoading = (show) => {
+            document.getElementById('loading').classList.toggle('active', show);
+        };
+        
+        const runBacktest = async () => {
+            const symbol = document.getElementById('symbol').value;
+            const interval = document.getElementById('interval').value;
+            const days = document.getElementById('days').value;
+            const minScore = document.getElementById('minScore').value;
+            const slMult = document.getElementById('slMult').value;
+            const tpMult = document.getElementById('tpMult').value;
+            
+            showLoading(true);
+            try {
+                const res = await fetch('/api/backtest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol, interval, days, minScore, slMult, tpMult })
+                });
+                
+                const data = await res.json();
+                showLoading(false);
+                
+                if (!data.ok) {
+                    showError(data.error || 'Backtest failed');
+                    return;
+                }
+                
+                displayResults(data.result);
+            } catch (e) {
+                showLoading(false);
+                showError(e.message);
+            }
+        };
+        
+        const runBatch = async () => {
+            const interval = document.getElementById('batchInterval').value;
+            const days = document.getElementById('batchDays').value;
+            
+            showLoading(true);
+            try {
+                const res = await fetch('/api/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interval, days })
+                });
+                
+                const data = await res.json();
+                showLoading(false);
+                
+                if (!data.ok) {
+                    showError('Batch failed');
+                    return;
+                }
+                
+                displayBatchResults(data.results);
+            } catch (e) {
+                showLoading(false);
+                showError(e.message);
+            }
+        };
+        
+        const runOptimize = async () => {
+            const symbol = document.getElementById('symbol').value;
+            const interval = document.getElementById('interval').value;
+            const days = document.getElementById('days').value;
+            
+            showLoading(true);
+            try {
+                const res = await fetch('/api/optimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol, interval, days, quick: true })
+                });
+                
+                const data = await res.json();
+                showLoading(false);
+                
+                if (!data.ok) {
+                    showError('Optimization failed');
+                    return;
+                }
+                
+                displayOptimizeResults(data.results, symbol);
+            } catch (e) {
+                showLoading(false);
+                showError(e.message);
+            }
+        };
+        
+        const displayResults = (result) => {
+            const html = `
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>📈 Results: ${result.symbol} (${result.interval})</h2>
+                    
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-label">Total Trades</div>
+                            <div class="stat-value">${result.total_trades}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Win Rate</div>
+                            <div class="stat-value ${result.win_rate >= 50 ? 'win' : 'loss'}">${result.win_rate.toFixed(1)}%</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Net R</div>
+                            <div class="stat-value ${result.net_r > 0 ? 'win' : 'loss'}">${result.net_r.toFixed(2)}R</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Profit Factor</div>
+                            <div class="stat-value ${result.profit_factor > 1 ? 'win' : 'loss'}">${result.profit_factor.toFixed(3)}</div>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                        <tr>
+                            <td>Wins / Losses</td>
+                            <td><span class="win">${result.wins}W</span> / <span class="loss">${result.losses}L</span></td>
+                        </tr>
+                        <tr>
+                            <td>Long Trades</td>
+                            <td>${result.long_trades} (${result.long_wr.toFixed(1)}% WR)</td>
+                        </tr>
+                        <tr>
+                            <td>Short Trades</td>
+                            <td>${result.short_trades} (${result.short_wr.toFixed(1)}% WR)</td>
+                        </tr>
+                        <tr>
+                            <td>Avg R/Trade</td>
+                            <td>${result.avg_r.toFixed(3)}</td>
+                        </tr>
+                        <tr>
+                            <td>Best Trade</td>
+                            <td class="win">${result.best_trade ? result.best_trade.r_multiple + 'R (' + result.best_trade.direction + ')' : 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Worst Trade</td>
+                            <td class="loss">${result.worst_trade ? result.worst_trade.r_multiple + 'R (' + result.worst_trade.direction + ')' : 'N/A'}</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+            document.getElementById('results').innerHTML = html;
+        };
+        
+        const displayBatchResults = (results) => {
+            const html = `
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>📊 Batch Results</h2>
+                    <table>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Trades</th>
+                            <th>Win %</th>
+                            <th>Net R</th>
+                            <th>Profit Factor</th>
+                        </tr>
+                        ${results.map(r => `
+                            <tr>
+                                <td><b>${r.symbol}</b></td>
+                                <td>${r.total_trades || 'N/A'}</td>
+                                <td class="${(r.win_rate || 0) >= 50 ? 'win' : 'loss'}">${(r.win_rate || 0).toFixed(1)}%</td>
+                                <td class="${(r.net_r || 0) > 0 ? 'win' : 'loss'}">${(r.net_r || 0).toFixed(2)}R</td>
+                                <td class="${(r.profit_factor || 0) > 1 ? 'win' : 'loss'}">${(r.profit_factor || 0).toFixed(3)}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+            document.getElementById('results').innerHTML = html;
+        };
+        
+        const displayOptimizeResults = (results, symbol) => {
+            const html = `
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>🔍 Optimization Results: ${symbol}</h2>
+                    <table>
+                        <tr>
+                            <th>Score</th>
+                            <th>SL Mult</th>
+                            <th>TP Mult</th>
+                            <th>Trades</th>
+                            <th>Win %</th>
+                            <th>Net R</th>
+                            <th>PF</th>
+                        </tr>
+                        ${results.map(r => `
+                            <tr>
+                                <td>${r.min_score}</td>
+                                <td>${r.sl_mult}</td>
+                                <td>${r.tp_mult}</td>
+                                <td>${r.trades}</td>
+                                <td class="win">${r.wr.toFixed(1)}%</td>
+                                <td class="${r.net_r > 0 ? 'win' : 'loss'}">${r.net_r.toFixed(2)}R</td>
+                                <td class="win">${r.pf.toFixed(3)}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
+            `;
+            document.getElementById('results').innerHTML = html;
+        };
+    </script>
+</body>
+</html>
