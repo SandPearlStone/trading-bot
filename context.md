@@ -1,5 +1,5 @@
 # Market Context
-_Generated: 2026-03-19 12:01 UTC_
+_Generated: 2026-03-19 13:01 UTC_
 
 ## Sentiment
 - **Fear & Greed:** 23/100 — Extreme Fear
@@ -7,49 +7,45 @@ _Generated: 2026-03-19 12:01 UTC_
 
 ## Market Overview
 
-### BTC — $69,924.91  📉 -0.04%
-24h: H $72,988.83  L $69,491.28  Vol $1138M
-1H: BEARISH | RSI 29.4 | EMA bearish | Structure bearish
-4H: BULLISH | RSI 18.8 | EMA bullish
-Levels: support $69491.28 (-0.6%) | resistance $70508.76 (+0.9%) | resistance $71606.91 (+2.4%)
+### BTC — $69,334.54  📉 -0.04%
+24h: H $72,549.39  L $69,121.00  Vol $1128M
+1H: BEARISH | RSI 22.7 | EMA bearish | Structure bearish
+4H: BULLISH | RSI 17.3 | EMA bullish
+Levels: resistance $70508.76 (+1.8%) | resistance $71606.91 (+3.3%) | resistance $73549.93 (+6.1%)
 
-### ETH — $2,167.03  📉 -0.05%
-24h: H $2,270.82  L $2,142.83  Vol $882M
-1H: NEUTRAL | RSI 39.7 | EMA mixed | Structure bearish
-4H: BULLISH | RSI 20.0 | EMA bullish
-Levels: support $2153.53 (-0.6%) | support $2142.83 (-1.1%) | resistance $2233.14 (+3.1%)
+### ETH — $2,131.03  📉 -0.05%
+24h: H $2,244.90  L $2,129.02  Vol $863M
+1H: NEUTRAL | RSI 27.9 | EMA mixed | Structure bearish
+4H: BULLISH | RSI 17.7 | EMA bullish
+Levels: resistance $2153.53 (+1.1%) | resistance $2233.14 (+4.9%) | resistance $2307.52 (+8.4%)
 
-### SOL — $89.57  📉 -0.03%
-24h: H $92.03  L $88.58  Vol $115M
-1H: BULLISH | RSI 44.3 | EMA mixed | Structure bullish
-4H: BULLISH | RSI 27.5 | EMA bullish
-Levels: support $88.615 (-1.0%) | resistance $90.88 (+1.5%) | resistance $91.43 (+2.1%)
+### SOL — $88.15  📉 -0.02%
+24h: H $91.43  L $88.03  Vol $109M
+1H: BULLISH | RSI 32.5 | EMA mixed | Structure ranging
+4H: BULLISH | RSI 24.3 | EMA bullish
+Levels: resistance $88.58 (+0.5%) | resistance $90.88 (+3.2%) | resistance $91.43 (+3.8%)
 
-### BNB — $643.75  📉 -0.03%
-24h: H $662.39  L $641.00  Vol $28M
-1H: BEARISH | RSI 30.9 | EMA bearish | Structure bearish
-4H: BULLISH | RSI 24.0 | EMA bullish
-Levels: resistance $644.37 (+0.1%) | support $641.0 (-0.4%) | resistance $656.36 (+2.0%)
+### BNB — $638.99  📉 -0.03%
+24h: H $659.22  L $638.14  Vol $27M
+1H: BEARISH | RSI 23.2 | EMA bearish | Structure bearish
+4H: BULLISH | RSI 22.2 | EMA bullish
+Levels: resistance $644.37 (+0.9%) | resistance $656.36 (+2.8%) | resistance $665.55 (+4.2%)
 
-### XRP — $1.46  📉 -0.02%
-24h: H $1.49  L $1.44  Vol $101M
-1H: BULLISH | RSI 46.5 | EMA mixed | Structure bullish
-4H: BULLISH | RSI 34.0 | EMA bullish
-Levels: support $1.4511 (-0.4%) | resistance $1.4721 (+1.0%) | support $1.4361 (-1.4%)
+### XRP — $1.44  📉 -0.02%
+24h: H $1.48  L $1.44  Vol $95M
+1H: BULLISH | RSI 36.2 | EMA mixed | Structure ranging
+4H: BULLISH | RSI 31.4 | EMA bullish
+Levels: support $1.4361 (-0.1%) | resistance $1.4721 (+2.4%) | resistance $1.4811 (+3.0%)
 
 ## Open Trades
 - **#1 ETHUSDT SHORT 40.0x**
   Entry $2220.0  SL $2220.0  TP1 $None
-  Current $2,167.03  PnL +2.39% (+95.4% levered)
+  Current $2,129.44  PnL +4.08% (+163.2% levered)
 
 ## Crypto News & Sentiment
+_Web search API unavailable at 13:01 UTC — check news feeds manually or retry later._
 
-- **Extreme Fear dominates** (23/100) — market in deep capitulation zone; aggressive shorts winning
-- **BTC holding above $69.4k support** — key level for shorts to defend; break below triggers liquidation cascade
-- **ETH oversold on 1H** (RSI 39.7) — 4H bullish structure suggests higher timeframe strength despite hourly weakness
-- **SOL showing resilience** — 1H bullish with healthy RSI (44.3), consolidating $88–$91 range; potential breakout setup
-- **BNB hourly breakdown** — bearish 1H vs bullish 4H conflict; watch $641–$644 pivot zone
-- **XRP bullish bias intact** — both 1H and 4H green; outperforming BTC in relative strength
-- **Trading volume soft** across most pairs — suggests low conviction moves; wait for volume confirmation before aggressive entries
-- **Your ETHUSDT short profitable (+2.39%)** — positioned well in downtrend; monitor RSI 20.0 on 4H for exhaustion signals
-- **Risk/Reward favorable for shorts** — fear sentiment + bearish technicals = no rush; let targets come to you
+### Key Themes (manual check needed):
+- Monitor Fed/macro rates and inflation signals
+- BTC/ETH recovery potential from extreme fear (Fear & Greed: 23/100)
+- Watch altcoin activity (SOL, XRP showing bullish 4H structure)
