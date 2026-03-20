@@ -1,0 +1,52 @@
+================================================================================
+Phase 4.2: Random Forest Model Training Report
+================================================================================
+
+MODEL CONFIGURATION
+  Estimators: 100
+  Max Depth: 10
+  Random State: 42
+  Test Size: 0.2
+  CV Folds: 5
+
+DATASET
+  Total Samples: 210
+  Train Samples: 168
+  Test Samples: 42
+  Features: 14
+
+CROSS-VALIDATION (5-fold)
+  Scores: [0.6470588235294118, 0.6470588235294118, 0.7941176470588235, 0.6666666666666666, 0.696969696969697]
+  Mean: 0.6904
+  Std: 0.0550
+
+TEST SET PERFORMANCE
+  Accuracy: 0.5714
+  Precision: 0.5000
+  Recall: 0.5556
+  F1: 0.5263
+  AUC: 0.6597
+
+CONFUSION MATRIX
+  [[TN, FP],
+   [FN, TP]]
+  [[14, 10], [8, 10]]
+
+FEATURE IMPORTANCE (Top 15)
+  rsi_strength: 22.32%
+  vol_ratio: 21.52%
+  duration_candles: 18.46%
+  entry_to_sl: 10.62%
+  regime_NORMAL: 6.00%
+  rsi_div_regular: 5.33%
+  macd_div: 4.45%
+  direction_encoded: 4.43%
+  regime_VOLATILE: 3.09%
+  confluence_score: 2.85%
+  regime_CHOPPY: 0.93%
+  rsi_div_hidden: 0.00%
+  sentiment_fg: 0.00%
+  mtf_bias: 0.00%
+
+SUCCESS CRITERIA
+  ✅ CV Score > 60%: 0.6904
