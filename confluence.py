@@ -50,6 +50,12 @@ except ImportError:
     print("[confluence] WARNING: Phase 2 modules not available", file=sys.stderr)
     classify_regime = adaptive_min_score = get_regime_adjustment = rsi_hidden_divergence = None  # type: ignore
 
+try:
+    from kelly_calculator import KellyCalculator
+except ImportError:
+    print("[confluence] WARNING: Kelly calculator not available", file=sys.stderr)
+    KellyCalculator = None  # type: ignore
+
 
 # ── Scoring weights (must sum to 100) ─────────────────────────────────────────
 # REBALANCED for Phase 1: RSI divergence up (rare, valuable), EMA stack down (lagging)
@@ -125,6 +131,74 @@ def _nearest_fvg(fvgs: list[dict], price: float, direction: str) -> Optional[dic
     if not candidates:
         return None
     return min(candidates, key=lambda f: abs((f["top"] + f["bottom"]) / 2 - price))
+
+
+def _calculate_position_size(
+    account_size: float,
+    kelly_fraction: float,
+    regime: str,
+    entry_price: Optional[float] = None,
+    stop_loss: Optional[float] = None,
+    score: float = 50,
+    risk_pct: float = 1.0,
+) -> dict:
+    """
+    Calculate position size using Kelly Criterion + regime adjustment.
+    
+    Args:
+        account_size: Total account balance ($)
+        kelly_fraction: f*/4 from kelly_calculator (e.g., 0.081)
+        regime: Market regime (CHOPPY/RANGING/NORMAL/TRENDING/VOLATILE)
+        entry_price: Entry price for distance calculations (optional)
+        stop_loss: Stop loss price for risk calculations (optional)
+        score: Confluence score (0-100) to scale position
+        risk_pct: Risk per trade in % (default 1%)
+    
+    Returns:
+        {
+            "position_size": float (USD),
+            "regime_multiplier": float,
+            "recommended_leverage": float,
+            "adjusted_risk_pct": float,
+            "kelly_info": str (for display)
+        }
+    """
+    
+    # Base Kelly sizing
+    base_risk = account_size * kelly_fraction
+    
+    # Regime adjustment multiplier
+    regime_multiplier = {
+        "CHOPPY": 0.25,
+        "RANGING": 0.5,
+        "NORMAL": 1.0,
+        "TRENDING": 1.2,
+        "VOLATILE": 0.8,
+    }.get(regime, 1.0)
+    
+    # Confidence scaling from setup score
+    confidence_scale = score / 100 if score > 0 else 0.5
+    
+    # Apply regime + confidence adjustment
+    adjusted_risk = base_risk * regime_multiplier * confidence_scale
+    
+    # Calculate implied leverage
+    leverage = adjusted_risk / account_size if account_size > 0 else 1.0
+    
+    # Adjusted risk percentage
+    adjusted_risk_pct = (adjusted_risk / account_size) * 100 if account_size > 0 else 0
+    
+    # Kelly info string for display
+    kelly_info = f"f*/4: {kelly_fraction:.1%} × {regime_multiplier}x (regime) × {confidence_scale:.1%} (score) = {adjusted_risk_pct:.2f}% risk"
+    
+    return {
+        "position_size": adjusted_risk,
+        "regime_multiplier": regime_multiplier,
+        "confidence_scale": confidence_scale,
+        "recommended_leverage": leverage,
+        "adjusted_risk_pct": adjusted_risk_pct,
+        "kelly_info": kelly_info,
+    }
 
 
 # ── Main scoring function ─────────────────────────────────────────────────────
@@ -523,6 +597,59 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
     result["details"]["atr"]       = atr_val
     result["details"]["bias"]      = primary_bias
 
+    # ── PHASE 3: Kelly Position Sizing ──────────────────────────────────────
+    position_recommendation = None
+    kelly_information = None
+    
+    if result["direction"] != "NO_TRADE" and KellyCalculator:
+        try:
+            # Use conservative f*/4 (8.1% from demo = safe Kelly)
+            # In production, this would come from kelly_calculator.py (closed trades)
+            # For now, use a safe default: 55% win rate, +2% avg win, -1% avg loss
+            kelly_data = KellyCalculator.calculate_kelly(win_rate=0.55, avg_win_pct=2.0, avg_loss_pct=1.0)
+            kelly_fraction = kelly_data["f_quarter"]  # Use f*/4 (conservative)
+            
+            # Get account size (default to $10k if unknown)
+            account_size = 10000  # TODO: fetch from config or context
+            
+            # Calculate position sizing with regime and score adjustments
+            sizing = _calculate_position_size(
+                account_size=account_size,
+                kelly_fraction=kelly_fraction,
+                regime=regime_name,
+                entry_price=result["optimal_entry"],
+                stop_loss=result["stop_loss"],
+                score=total_score,
+                risk_pct=1.0,
+            )
+            
+            position_recommendation = {
+                "position_size": sizing["position_size"],
+                "recommended_leverage": sizing["recommended_leverage"],
+                "regime_multiplier": sizing["regime_multiplier"],
+                "adjusted_risk_pct": sizing["adjusted_risk_pct"],
+            }
+            
+            kelly_information = {
+                "kelly_f_star": kelly_data["f_star"],
+                "kelly_f_half": kelly_data["f_half"],
+                "kelly_f_quarter": kelly_data["f_quarter"],
+                "win_rate": kelly_data["win_rate"],
+                "avg_win_pct": kelly_data["avg_win_pct"],
+                "avg_loss_pct": kelly_data["avg_loss_pct"],
+                "kelly_info_str": sizing["kelly_info"],
+            }
+            
+            result["position_recommendation"] = position_recommendation
+            result["kelly_information"] = kelly_information
+            
+        except Exception as e:
+            result["missing"].append(f"Kelly sizing error: {e}")
+    else:
+        # Graceful fallback if Kelly unavailable
+        if result["direction"] != "NO_TRADE":
+            result["missing"].append("Kelly sizing unavailable (no valid setup or calculator offline)")
+
     return result
 
 
@@ -537,9 +664,9 @@ if __name__ == "__main__":
 
     res = score_setup(sym, tf, htf)
 
-    print(f"\n{'═'*50}")
+    print(f"\n{'═'*60}")
     print(f"  {sym}/USDT | {res['direction']} | Grade: {res['grade']} ({res['score']}/100)")
-    print(f"{'═'*50}")
+    print(f"{'═'*60}")
     print(f"  Price:         ${res['details'].get('price', 0):,.4f}")
     if res["entry_zone"][0]:
         print(f"  Entry zone:    ${res['entry_zone'][0]:,.4f} – ${res['entry_zone'][1]:,.4f}")
@@ -552,6 +679,18 @@ if __name__ == "__main__":
         print(f"  TP3:           ${res['tp3']:,.4f}  (key level)")
     if res["rr_ratio"]:
         print(f"  R:R:           1:{res['rr_ratio']}")
+    
+    # Kelly position sizing
+    if res.get("position_recommendation"):
+        kelly = res["kelly_information"]
+        pos_rec = res["position_recommendation"]
+        print()
+        print(f"  ✨ KELLY SIZING (Account: $10,000):")
+        print(f"     Kelly f*/4:     {kelly['kelly_f_quarter']:.1%} (base)")
+        print(f"     Regime:         {res['details'].get('regime', {}).get('regime', 'UNKNOWN')} ({pos_rec['regime_multiplier']}x multiplier)")
+        print(f"     Position:       ${pos_rec['position_size']:,.0f} ({pos_rec['adjusted_risk_pct']:.2f}% risk)")
+        print(f"     Leverage:       {pos_rec['recommended_leverage']:.1f}x")
+    
     print()
     for reason in res["confluence_reasons"]:
         print(f"  ✅ {reason}")
@@ -559,4 +698,4 @@ if __name__ == "__main__":
         print(f"  ❌ {m}")
     if res["invalidation"]:
         print(f"\n  Invalidation: ${res['invalidation']:,.4f}")
-    print(f"{'═'*50}\n")
+    print(f"{'═'*60}\n")

@@ -187,7 +187,7 @@ class BacktestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     port = 5555
-    server = HTTPServer(('127.0.0.1', port), BacktestHandler)
+    server = HTTPServer(('0.0.0.0', port), BacktestHandler)
     
     print("\n" + "="*60)
     print("  🎯 Backtest GUI Server (No Dependencies)")

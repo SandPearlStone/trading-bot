@@ -64,9 +64,11 @@ def _fmt_setup(r: dict, idx: int) -> str:
     rr    = r.get("rr_ratio")
     inv   = r.get("invalidation")
     entry_info = r.get("entry")
+    pos_rec = r.get("position_recommendation")
+    kelly_info = r.get("kelly_information")
 
     lines = [
-        f"{'═'*43}",
+        f"{'═'*50}",
         f"  {sym}/USDT | {dirn} | Grade: {grade} ({score}/100)",
         f"  Price: ${price:,.4f}",
         "",
@@ -106,6 +108,16 @@ def _fmt_setup(r: dict, idx: int) -> str:
         else:
             lines.append(f"  ⏳ Entry timing: WAITING ({entry_info['confidence']}%)")
 
+    # Kelly position sizing section
+    if pos_rec and kelly_info:
+        lines.append("")
+        lines.append(f"  ✨ KELLY SIZING (Account: $10,000):")
+        lines.append(f"     f*/4:         {kelly_info['kelly_f_quarter']:.1%} (base)")
+        regime = r.get("details", {}).get("regime", {}).get("regime", "UNKNOWN")
+        lines.append(f"     Regime:       {regime} ({pos_rec['regime_multiplier']}x multiplier)")
+        lines.append(f"     Position:     ${pos_rec['position_size']:,.0f} ({pos_rec['adjusted_risk_pct']:.2f}% risk)")
+        lines.append(f"     Leverage:     {pos_rec['recommended_leverage']:.1f}x")
+
     lines.append("")
 
     # Confluence reasons (check marks)
@@ -122,7 +134,7 @@ def _fmt_setup(r: dict, idx: int) -> str:
     if inv:
         lines.append(f"\n  Invalidation: ${inv:,.4f}")
 
-    lines.append(f"{'═'*43}")
+    lines.append(f"{'═'*50}")
     return "\n".join(lines)
 
 
