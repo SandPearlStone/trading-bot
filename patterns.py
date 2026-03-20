@@ -276,6 +276,77 @@ def order_blocks(
     return unique_obs
 
 
+# ─── MACD Divergence (Phase 1 Addition) ───────────────────────────────────────
+
+def macd_divergence(
+    df: pd.DataFrame,
+    lookback: int = 5,
+    fast: int = 12,
+    slow: int = 26,
+    signal: int = 9,
+    scan_window: int = 50,
+) -> list[dict]:
+    """
+    Detect MACD divergences (line vs price).
+    
+    Bullish: price lower low, MACD line higher low
+    Bearish: price higher high, MACD line lower high
+    
+    Returns list of {type, price_a, price_b, macd_a, macd_b, time_a, time_b}
+    """
+    df = df.copy().tail(scan_window + lookback * 2 + slow)
+    
+    # Calculate MACD
+    ema12 = df["close"].ewm(span=fast).mean()
+    ema26 = df["close"].ewm(span=slow).mean()
+    macd_line = ema12 - ema26
+    macd_signal = macd_line.ewm(span=signal).mean()
+    
+    df["macd"] = macd_line
+    df = swing_points(df, lookback)
+    
+    divergences = []
+    
+    # Bullish divergence: price lows descending, MACD lows ascending
+    lows_idx = df["swing_low"].dropna().index
+    lows_list = list(lows_idx)
+    for i in range(1, len(lows_list)):
+        t_a, t_b = lows_list[i-1], lows_list[i]
+        price_a, price_b = df.loc[t_a, "low"], df.loc[t_b, "low"]
+        macd_a, macd_b = df.loc[t_a, "macd"], df.loc[t_b, "macd"]
+        
+        if price_a > price_b and macd_a < macd_b and not np.isnan(macd_a) and not np.isnan(macd_b):
+            divergences.append({
+                "type": "bullish",
+                "price_a": round(price_a, 8),
+                "price_b": round(price_b, 8),
+                "macd_a": round(macd_a, 8),
+                "macd_b": round(macd_b, 8),
+                "time_a": df.loc[t_a, "time"],
+                "time_b": df.loc[t_b, "time"],
+            })
+    
+    # Bearish divergence: price highs ascending, MACD highs descending
+    highs_idx = df["swing_high"].dropna().index
+    highs_list = list(highs_idx)
+    for i in range(1, len(highs_list)):
+        t_a, t_b = highs_list[i-1], highs_list[i]
+        price_a, price_b = df.loc[t_a, "high"], df.loc[t_b, "high"]
+        macd_a, macd_b = df.loc[t_a, "macd"], df.loc[t_b, "macd"]
+        
+        if price_a < price_b and macd_a > macd_b and not np.isnan(macd_a) and not np.isnan(macd_b):
+            divergences.append({
+                "type": "bearish",
+                "price_a": round(price_a, 8),
+                "price_b": round(price_b, 8),
+                "macd_a": round(macd_a, 8),
+                "macd_b": round(macd_b, 8),
+                "time_a": df.loc[t_a, "time"],
+                "time_b": df.loc[t_b, "time"],
+            })
+    
+    return divergences
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

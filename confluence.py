@@ -38,24 +38,47 @@ except ImportError:
     analyze_orderbook = None  # type: ignore
 
 try:
-    from patterns import rsi_divergence, liquidity_sweep, order_blocks
+    from patterns import rsi_divergence, liquidity_sweep, order_blocks, macd_divergence
 except ImportError:
     print("[confluence] WARNING: patterns not available", file=sys.stderr)
-    rsi_divergence = liquidity_sweep = order_blocks = None  # type: ignore
+    rsi_divergence = liquidity_sweep = order_blocks = macd_divergence = None  # type: ignore
 
 
 # ── Scoring weights (must sum to 100) ─────────────────────────────────────────
+# REBALANCED for Phase 1: RSI divergence up (rare, valuable), EMA stack down (lagging)
 WEIGHTS = {
-    "mtf_bias":        25,   # 4h + 1h + 15m agreement
+    "mtf_bias":        25,   # 4h + 1h + 15m agreement (timeframe weighted: 50% 4h, 30% 1h, 20% 15m)
     "market_structure": 15,   # BOS, HH/HL or LH/LL
-    "ema_stack":       10,   # EMA alignment
-    "rsi_position":    10,   # RSI zone
-    "fvg_nearby":      10,   # FVG near price
-    "order_block":     10,   # OB nearby
+    "ema_stack":        3,   # EMA alignment (DOWNGRADE: lagging indicator)
+    "rsi_position":    10,   # RSI zone (gradient scoring, not binary)
+    "fvg_nearby":      10,   # FVG near price (gradient: closer = more pts)
+    "order_block":     10,   # OB nearby (gradient: closer = more pts)
     "ob_wall":         10,   # Orderbook wall aligns with direction
-    "rsi_divergence":   5,   # RSI divergence
+    "rsi_divergence":  12,   # RSI divergence (UPGRADE: your winning signal)
+    "macd_divergence":  5,   # MACD divergence (NEW: complementary to RSI)
     "liquidity_sweep":  5,   # Stop hunt / sweep before entry
 }
+
+# ── Sentiment Gating (Phase 1) ────────────────────────────────────────────────
+def _sentiment_adjustment(direction: str, fg_index: Optional[int] = None, btc_dom: Optional[float] = None) -> int:
+    """
+    Adjust score based on fear/greed and BTC dominance.
+    - Extreme fear (FG < 20): LONG +5pts
+    - Extreme greed (FG > 80): LONG -10pts
+    - BTC dom rising: ALT LONG -5pts
+    """
+    adjustment = 0
+    
+    if fg_index is not None:
+        if fg_index < 20 and direction == "LONG":
+            adjustment += 5  # Extreme fear, good for longs
+        elif fg_index > 80 and direction == "LONG":
+            adjustment -= 10  # Extreme greed, risky for longs
+    
+    if btc_dom is not None and btc_dom > 55 and direction == "LONG":
+        adjustment -= 5  # High BTC dom = alts bleed
+    
+    return adjustment
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -290,14 +313,16 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
     else:
         result["missing"].append("Orderbook module unavailable")
 
-    # ── 8. RSI divergence (5 pts) ────────────────────────────────────────────
+    # ── 8. RSI divergence (12 pts) ────────────────────────────────────────────
     div_score = 0
+    rsi_div_found = False
     if rsi_divergence and df_1h is not None:
         divs = rsi_divergence(df_1h)
         div_type_want = "bullish" if primary_bias == "bullish" else "bearish"
         recent_divs = [d for d in divs if d["type"] == div_type_want]
         if recent_divs:
             div_score = WEIGHTS["rsi_divergence"]
+            rsi_div_found = True
             result["confluence_reasons"].append(
                 f"RSI {'bullish' if primary_bias=='bullish' else 'bearish'} divergence"
             )
@@ -305,6 +330,23 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
             result["missing"].append("No RSI divergence")
     else:
         result["missing"].append("RSI divergence module unavailable")
+
+    # ── 8b. MACD divergence (5 pts) ──────────────────────────────────────────
+    # Bonus +5pts if BOTH RSI and MACD diverge (Phase 1 addition)
+    macd_div_bonus = 0
+    if macd_divergence and df_1h is not None:
+        macd_divs = macd_divergence(df_1h)
+        div_type_want = "bullish" if primary_bias == "bullish" else "bearish"
+        recent_macd_divs = [d for d in macd_divs if d["type"] == div_type_want]
+        if recent_macd_divs:
+            if rsi_div_found:
+                macd_div_bonus = WEIGHTS.get("macd_divergence", 5)  # Dual divergence bonus
+                result["confluence_reasons"].append("Dual divergence: RSI + MACD")
+            else:
+                macd_div_bonus = int(WEIGHTS.get("macd_divergence", 5) * 0.6)  # Half strength if RSI not present
+                result["confluence_reasons"].append("MACD divergence (RSI not present)")
+    
+    div_score += macd_div_bonus
 
     # ── 9. Liquidity sweep (5 pts) ───────────────────────────────────────────
     sweep_score = 0
@@ -324,14 +366,37 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
     else:
         result["missing"].append("Liquidity sweep module unavailable")
 
-    # ── Total score ──────────────────────────────────────────────────────────
+    # ── Total score (before sentiment) ───────────────────────────────────────
     total_score = (
         mtf_score + ms_score + ema_score + rsi_score +
         fvg_score + ob_score + wall_score + div_score + sweep_score
     )
+    
+    # ── Direction (before sentiment adjustment) ──────────────────────────────
+    direction_preliminary = "LONG" if primary_bias == "bullish" else "SHORT" if primary_bias == "bearish" else "NO_TRADE"
+    
+    # ── Apply sentiment gating (Phase 1) ──────────────────────────────────────
+    # Try to fetch F&G + BTC dominance for sentiment adjustment
+    try:
+        from mexc import get_24h
+        btc_stats = get_24h("BTCUSDT")
+        btc_dom = btc_stats.get("dominance")  # May not exist, that's ok
+    except:
+        btc_dom = None
+    
+    # For now, F&G requires separate fetch (would add to context.md in production)
+    fg_index = None  # TODO: fetch from your market_context.py
+    
+    sentiment_adj = _sentiment_adjustment(direction_preliminary, fg_index, btc_dom) if direction_preliminary != "NO_TRADE" else 0
+    total_score = max(0, min(100, total_score + sentiment_adj))  # Clamp to 0-100
+    
+    if sentiment_adj != 0:
+        result["sentiment_adjustment"] = sentiment_adj
+        result["confluence_reasons"].append(f"Sentiment adjustment: {sentiment_adj:+d}pts")
+    
     result["score"] = total_score
 
-    # ── Direction ────────────────────────────────────────────────────────────
+    # ── Direction (final, after sentiment) ────────────────────────────────────
     if total_score >= 40 and primary_bias in ("bullish", "bearish"):
         result["direction"] = "LONG" if primary_bias == "bullish" else "SHORT"
     else:
