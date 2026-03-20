@@ -26,10 +26,14 @@ def classify_regime(df_4h, df_1h):
     """
     
     # ATR volatility ratio (current vs. historical)
-    atr_20_4h = atr(df_4h, 20)
-    atr_sma_4h = np.mean([atr(df_4h.iloc[max(0, i-60):i+1], 20) for i in range(len(df_4h))])
+    atr_vals = atr(df_4h, 20)
+    atr_20_4h = float(atr_vals.iloc[-1]) if hasattr(atr_vals, 'iloc') else float(atr_vals[-1]) if isinstance(atr_vals, (list, tuple)) else float(atr_vals)
     
-    vol_ratio = atr_20_4h[-1] / atr_sma_4h if atr_sma_4h > 0 else 1.0
+    # ATR SMA (rolling average of ATR)
+    atr_list = list(atr_vals.iloc[-60:]) if hasattr(atr_vals, 'iloc') else (atr_vals[-60:] if isinstance(atr_vals, (list, tuple)) else [atr_vals])
+    atr_sma_4h = np.mean(atr_list) if len(atr_list) > 0 else atr_20_4h
+    
+    vol_ratio = atr_20_4h / atr_sma_4h if atr_sma_4h > 0 else 1.0
     
     # EMA slope (trend strength)
     ema_21 = df_1h['close'].ewm(span=21).mean()
@@ -39,7 +43,7 @@ def classify_regime(df_4h, df_1h):
     recent_high = df_1h['high'].iloc[-20:].max()
     recent_low = df_1h['low'].iloc[-20:].min()
     range_size = (recent_high - recent_low) / df_1h['close'].iloc[-1] * 100
-    atr_pct = (atr_20_4h[-1] / df_1h['close'].iloc[-1]) * 100
+    atr_pct = (atr_20_4h / df_1h['close'].iloc[-1]) * 100
     
     # Classify
     if vol_ratio < 0.8 and abs(ema_slope) < 0.5:
