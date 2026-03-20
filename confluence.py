@@ -43,6 +43,13 @@ except ImportError:
     print("[confluence] WARNING: patterns not available", file=sys.stderr)
     rsi_divergence = liquidity_sweep = order_blocks = macd_divergence = None  # type: ignore
 
+try:
+    from regime_detector import classify_regime, adaptive_min_score, get_regime_adjustment
+    from divergence_detector import rsi_hidden_divergence
+except ImportError:
+    print("[confluence] WARNING: Phase 2 modules not available", file=sys.stderr)
+    classify_regime = adaptive_min_score = get_regime_adjustment = rsi_hidden_divergence = None  # type: ignore
+
 
 # ── Scoring weights (must sum to 100) ─────────────────────────────────────────
 # REBALANCED for Phase 1: RSI divergence up (rare, valuable), EMA stack down (lagging)
@@ -169,6 +176,20 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
 
     price = float(df_1h["close"].iloc[-1])
     result["details"]["price"] = price
+
+    # ── PHASE 2: Regime Detection ───────────────────────────────────────────
+    regime_info = {"regime": "UNKNOWN", "min_score": 65}
+    if classify_regime and df_htf is not None:
+        try:
+            regime_info = classify_regime(df_htf, df_1h)
+            adaptive_threshold = adaptive_min_score(regime_info["regime"])
+            regime_info["min_score"] = adaptive_threshold
+            result["details"]["regime"] = regime_info
+            result["confluence_reasons"].append(f"Regime: {regime_info['regime']} (min_score: {adaptive_threshold})")
+        except Exception as e:
+            result["missing"].append(f"Regime detection error: {e}")
+    else:
+        result["missing"].append("Regime detection unavailable")
 
     # ── Full analysis on primary TF ─────────────────────────────────────────
     analysis = full_analysis(candles_1h, symbol)
@@ -313,7 +334,7 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
     else:
         result["missing"].append("Orderbook module unavailable")
 
-    # ── 8. RSI divergence (12 pts) ────────────────────────────────────────────
+    # ── 8. RSI divergence + Hidden divergence (12 pts) ──────────────────────
     div_score = 0
     rsi_div_found = False
     if rsi_divergence and df_1h is not None:
@@ -328,6 +349,18 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
             )
         else:
             result["missing"].append("No RSI divergence")
+        
+        # PHASE 2: Check for hidden divergence (stronger in trends)
+        if rsi_hidden_divergence:
+            try:
+                hidden_divs = rsi_hidden_divergence(df_1h)
+                div_type_want = "bullish_hidden" if primary_bias == "bullish" else "bearish_hidden"
+                recent_hidden = [d for d in hidden_divs if d["type"] == div_type_want]
+                if recent_hidden:
+                    div_score += 3  # Bonus for hidden divergence (often more reliable)
+                    result["confluence_reasons"].append("Hidden divergence (trend continuation)")
+            except:
+                pass
     else:
         result["missing"].append("RSI divergence module unavailable")
 
@@ -396,8 +429,15 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
     
     result["score"] = total_score
 
-    # ── Direction (final, after sentiment) ────────────────────────────────────
-    if total_score >= 40 and primary_bias in ("bullish", "bearish"):
+    # ── PHASE 2: Apply Regime Gating ───────────────────────────────────────────
+    min_score_threshold = regime_info.get("min_score", 65)
+    regime_name = regime_info.get("regime", "UNKNOWN")
+    
+    if total_score < min_score_threshold:
+        result["direction"] = "NO_TRADE"
+        result["confluence_reasons"].append(f"GATED by regime: {regime_name} requires score ≥ {min_score_threshold}, got {total_score}")
+    # ── Direction (final, after sentiment + regime gating) ────────────────────
+    elif total_score >= min_score_threshold and primary_bias in ("bullish", "bearish"):
         result["direction"] = "LONG" if primary_bias == "bullish" else "SHORT"
     else:
         result["direction"] = "NO_TRADE"
