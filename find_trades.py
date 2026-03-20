@@ -67,9 +67,15 @@ def _fmt_setup(r: dict, idx: int) -> str:
     pos_rec = r.get("position_recommendation")
     kelly_info = r.get("kelly_information")
 
+    # ML confidence if available
+    ml_str = ""
+    if r.get("ml_available"):
+        ml_conf = r.get("ml_confidence", 0.5)
+        ml_str = f" [ML: {ml_conf:.0%}]"
+    
     lines = [
         f"{'═'*50}",
-        f"  {sym}/USDT | {dirn} | Grade: {grade} ({score}/100)",
+        f"  {sym}/USDT | {dirn} | Grade: {grade} ({score:.0f}/100){ml_str}",
         f"  Price: ${price:,.4f}",
         "",
     ]
@@ -237,6 +243,7 @@ def main() -> None:
     parser.add_argument("--alert",      action="store_true",      help="Send top setups via Telegram")
     parser.add_argument("--no-entry",   action="store_true",      help="Skip entry timing check (faster)")
     parser.add_argument("--no-journal", action="store_true",      help="Skip trade journal prompt")
+    parser.add_argument("--with-ml",    action="store_true",      help="Enable ML confidence scoring (Phase 4)")
     args = parser.parse_args()
 
     symbols = args.symbols or DEFAULT_SYMBOLS
@@ -247,6 +254,7 @@ def main() -> None:
     print(f"  Interval:  {args.interval} / {args.higher_tf}")
     print(f"  Min grade: {args.min_grade}")
     print(f"  Alerts:    {'yes' if args.alert else 'no'}")
+    print(f"  ML scoring: {'yes (Phase 4)' if args.with_ml else 'no'}")
     print(f"{'─'*43}\n")
 
     # ── Step 1: Scan watchlist ────────────────────────────────────────────────
@@ -257,6 +265,7 @@ def main() -> None:
         higher_tf=args.higher_tf,
         min_grade=args.min_grade,
         check_entry=not args.no_entry,
+        use_ml=args.with_ml,
     )
 
     if not results:

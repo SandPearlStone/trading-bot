@@ -12,10 +12,11 @@ from typing import Optional
 
 # ── Local imports (graceful) ──────────────────────────────────────────────────
 try:
-    from confluence import score_setup
+    from confluence import score_setup, score_setup_with_ml
 except ImportError:
     print("[watchlist] WARNING: confluence not available", file=sys.stderr)
     score_setup = None  # type: ignore
+    score_setup_with_ml = None  # type: ignore
 
 try:
     from entry_finder import find_entry
@@ -42,6 +43,7 @@ def scan_watchlist(
     higher_tf: str = "4h",
     min_grade: str = "B",
     check_entry: bool = True,
+    use_ml: bool = False,
 ) -> list[dict]:
     """
     Score every symbol in *symbols*, filter by grade >= *min_grade*,
@@ -54,11 +56,12 @@ def scan_watchlist(
     higher_tf  : context timeframe (default "4h")
     min_grade  : minimum grade to keep ("A", "B", "C")
     check_entry: also run entry_finder on qualifying setups
+    use_ml     : if True, use ML-enhanced scoring (Phase 4)
 
     Returns
     -------
-    list of score dicts (from confluence.score_setup) with optional
-    "entry" key from entry_finder.
+    list of score dicts (from confluence.score_setup or score_setup_with_ml)
+    with optional "entry" key from entry_finder.
     """
     if score_setup is None:
         print("[watchlist] ERROR: confluence module not available")
@@ -72,7 +75,11 @@ def scan_watchlist(
     for sym in symbols:
         try:
             print(f"  Scanning {sym}...", end=" ", flush=True)
-            setup = score_setup(sym, interval, higher_tf)
+            # Use ML-enhanced scoring if requested and available
+            if use_ml and score_setup_with_ml is not None:
+                setup = score_setup_with_ml(sym, interval, higher_tf)
+            else:
+                setup = score_setup(sym, interval, higher_tf)
             grade_rank = grade_order.get(setup.get("grade", "F"), 1)
 
             if grade_rank >= min_grade_rank and setup.get("direction") != "NO_TRADE":

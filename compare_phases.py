@@ -289,6 +289,79 @@ class Phase2Backend:
         return setup["score"] >= threshold and setup["direction"] != "NO_TRADE"
 
 
+# ─── PHASE 4 BACKEND (Phase 2 + ML Confidence Scoring) ───────────────────────
+
+class Phase4Backend:
+    """Phase 4: Phase 2 + ML-enhanced confidence scoring."""
+    
+    def __init__(self):
+        self.name = "Phase4"
+    
+    def score_setup(self, symbol: str, df_1h: pd.DataFrame) -> Dict:
+        """
+        Score a setup using Phase 4 logic (Phase 2 + ML confidence).
+        
+        Returns: Phase 2 result with added ml_confidence and blended score
+        """
+        try:
+            # Import Phase 4 ML scorer (graceful fallback if unavailable)
+            from confluence import score_setup_with_ml
+            # Note: score_setup_with_ml expects symbol, tf, htf params
+            # For backtest context, we use simplified scoring
+            
+            # Get Phase 2 baseline
+            phase2 = Phase2Backend()
+            base_setup = phase2.score_setup(symbol, df_1h)
+            
+            # Try to enhance with ML if available
+            try:
+                from ml_scorer import score_with_ml, extract_features_from_setup
+                
+                # Create minimal setup dict for feature extraction
+                features = extract_features_from_setup(base_setup, df_1h)
+                ml_confidence = score_with_ml(features)
+                
+                # Blend: final = base × (0.7 + 0.3 × ml_prob)
+                raw_score = base_setup["score"]
+                multiplier = 0.7 + (0.3 * ml_confidence)
+                final_score = raw_score * multiplier
+                
+                base_setup["score"] = min(100, final_score)
+                base_setup["ml_confidence"] = ml_confidence
+                base_setup["raw_score"] = raw_score
+                base_setup["ml_available"] = True
+            except:
+                # Fallback to Phase 2 if ML unavailable
+                base_setup["ml_available"] = False
+                base_setup["ml_confidence"] = 0.5
+            
+            return base_setup
+        
+        except Exception as e:
+            # Graceful fallback to Phase 2
+            phase2 = Phase2Backend()
+            return phase2.score_setup(symbol, df_1h)
+    
+    def should_enter(self, setup: Dict) -> bool:
+        """Check if Phase 4 conditions are met."""
+        # Skip choppy markets (Phase 2 rule)
+        if setup.get("regime") == "CHOPPY":
+            return False
+        
+        # Phase 2 threshold check
+        threshold = setup.get("adaptive_threshold", 65)
+        if setup["score"] < threshold or setup["direction"] == "NO_TRADE":
+            return False
+        
+        # Phase 4 addition: Skip if ML confidence is very low
+        if setup.get("ml_available"):
+            ml_conf = setup.get("ml_confidence", 0.5)
+            if ml_conf < 0.35:  # Reject if ML confidence too low
+                return False
+        
+        return True
+
+
 # ─── BACKTEST ENGINE ─────────────────────────────────────────────────────────
 
 class BacktestEngine:
@@ -516,11 +589,21 @@ def get_symbols_from_db() -> List[str]:
     return symbols
 
 
-def main():
-    """Run comparison backtest."""
-    print("=" * 80)
-    print("PHASE 1 vs PHASE 2 COMPARISON BACKTEST")
-    print("=" * 80)
+def main(with_ml=False):
+    """
+    Run comparison backtest.
+    
+    Args:
+        with_ml: If True, include Phase 4 (with ML) in comparison
+    """
+    if with_ml:
+        print("=" * 80)
+        print("PHASE 1 vs PHASE 2 vs PHASE 4 (ML) COMPARISON BACKTEST")
+        print("=" * 80)
+    else:
+        print("=" * 80)
+        print("PHASE 1 vs PHASE 2 COMPARISON BACKTEST")
+        print("=" * 80)
     print()
     
     # Get symbols
@@ -552,41 +635,77 @@ def main():
         trades2 = engine2.run()
         stats2 = StatsCalculator.calculate(trades2)
         
-        print(f"P1:{stats1['total_trades']:2d}T|{stats1['win_rate']:5.1f}%  P2:{stats2['total_trades']:2d}T|{stats2['win_rate']:5.1f}%", end=" ")
+        # Phase 4 backtest (if requested)
+        stats4 = {} if not with_ml else None
+        if with_ml:
+            try:
+                phase4 = Phase4Backend()
+                engine4 = BacktestEngine(phase4, symbol, candles, lookback=200)
+                trades4 = engine4.run()
+                stats4 = StatsCalculator.calculate(trades4)
+            except Exception as e:
+                print(f"\n  [Phase 4 error: {e}]", end=" ")
+                stats4 = {}
+        
+        if with_ml and stats4:
+            print(f"P1:{stats1['total_trades']:2d}T|{stats1['win_rate']:5.1f}%  P2:{stats2['total_trades']:2d}T|{stats2['win_rate']:5.1f}%  P4:{stats4.get('total_trades', 0):2d}T|{stats4.get('win_rate', 0):5.1f}%", end=" ")
+        else:
+            print(f"P1:{stats1['total_trades']:2d}T|{stats1['win_rate']:5.1f}%  P2:{stats2['total_trades']:2d}T|{stats2['win_rate']:5.1f}%", end=" ")
         
         # Compare metrics
         metrics = ["win_rate", "max_drawdown", "sharpe_ratio", "avg_r", "profit_factor", "total_pnl"]
         for metric in metrics:
             p1_val = stats1.get(metric, 0)
             p2_val = stats2.get(metric, 0)
+            p4_val = stats4.get(metric, 0) if with_ml and stats4 else None
             
-            # Skip if both zero
-            if p1_val == 0 and p2_val == 0:
+            # Skip if all zero
+            if p1_val == 0 and p2_val == 0 and (p4_val is None or p4_val == 0):
                 continue
             
-            # Determine winner
+            # Determine best performer
             if metric == "max_drawdown":
-                winner = "Phase2" if p2_val > p1_val else "Phase1"
+                # For drawdown, higher (less negative) is better
+                values = [("Phase1", p1_val), ("Phase2", p2_val)]
+                if with_ml and p4_val is not None:
+                    values.append(("Phase4", p4_val))
+                winner = max(values, key=lambda x: x[1])[0]
             else:
-                winner = "Phase2" if p2_val > p1_val else "Phase1"
+                # For all other metrics, higher is better
+                values = [("Phase1", p1_val), ("Phase2", p2_val)]
+                if with_ml and p4_val is not None:
+                    values.append(("Phase4", p4_val))
+                winner = max(values, key=lambda x: x[1])[0]
             
-            # Calculate difference
+            # Calculate differences
             if p1_val != 0:
-                pct_change = ((p2_val - p1_val) / abs(p1_val) * 100)
+                pct_change_p2 = ((p2_val - p1_val) / abs(p1_val) * 100)
             else:
-                pct_change = 100 if p2_val > 0 else 0
+                pct_change_p2 = 100 if p2_val > 0 else 0
             
-            diff = p2_val - p1_val
+            diff_p2 = p2_val - p1_val
             
-            results.append({
+            result_row = {
                 "Symbol": symbol,
                 "Metric": metric,
                 "Phase1": round(p1_val, 2),
                 "Phase2": round(p2_val, 2),
-                "Difference": round(diff, 2),
-                "%Change": round(pct_change, 2),
+                "Difference": round(diff_p2, 2),
+                "%Change": round(pct_change_p2, 2),
                 "Winner": winner
-            })
+            }
+            
+            # Add Phase 4 if enabled
+            if with_ml and p4_val is not None:
+                if p1_val != 0:
+                    pct_change_p4 = ((p4_val - p1_val) / abs(p1_val) * 100)
+                else:
+                    pct_change_p4 = 100 if p4_val > 0 else 0
+                result_row["Phase4"] = round(p4_val, 2)
+                result_row["P4vP1"] = round(p4_val - p1_val, 2)
+                result_row["P4%Change"] = round(pct_change_p4, 2)
+            
+            results.append(result_row)
         
         print("✅")
     
@@ -624,4 +743,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Compare trading phases backtest")
+    parser.add_argument("--with-ml", action="store_true", help="Include Phase 4 (ML-enhanced) in comparison")
+    args = parser.parse_args()
+    
+    main(with_ml=args.with_ml)

@@ -653,6 +653,61 @@ def score_setup(symbol: str, interval: str = "1h", higher_tf: str = "4h") -> dic
     return result
 
 
+# ── Phase 4 ML Wrapper ────────────────────────────────────────────────────────
+def score_setup_with_ml(symbol: str, tf: str = "1h", htf: str = "4h"):
+    """
+    Score setup with ML enhancement. Backward compatible wrapper.
+    
+    Calls score_setup() first, then enhances with ML confidence if available.
+    Blends: final_score = raw_score × (0.7 + 0.3 × ml_confidence)
+    
+    Args:
+        symbol: Crypto symbol (e.g., "BTC", "ETH")
+        tf: Primary timeframe (default "1h")
+        htf: Higher timeframe (default "4h")
+    
+    Returns:
+        dict: Same as score_setup(), with added keys:
+            - ml_confidence: ML confidence [0, 1]
+            - raw_score: Original confluence score
+            - ml_available: True if model loaded successfully
+    """
+    # Call existing scoring
+    result = score_setup(symbol, tf, htf)
+    
+    # Skip ML for no-trade signals
+    if result['direction'] == 'NO_TRADE':
+        result['ml_available'] = False
+        return result
+    
+    # Extract features and get ML confidence
+    try:
+        from ml_scorer import extract_features_from_setup, score_with_ml
+        
+        features = extract_features_from_setup(result)
+        ml_confidence = score_with_ml(features)
+        
+        # Blend: final = raw × (0.7 + 0.3 × ml_prob)
+        raw_score = result['score']
+        multiplier = 0.7 + (0.3 * ml_confidence)
+        final_score = raw_score * multiplier
+        
+        # Update result dict
+        result['score'] = final_score
+        result['ml_confidence'] = ml_confidence
+        result['raw_score'] = raw_score
+        result['ml_available'] = True
+        result['confluence_reasons'].append(f"ML confidence: {ml_confidence:.0%}")
+        
+    except Exception as e:
+        # Graceful fallback
+        result['ml_available'] = False
+        result['ml_confidence'] = 0.5
+        print(f"[confluence] ML scoring failed: {e}", file=sys.stderr)
+    
+    return result
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import json

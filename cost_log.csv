@@ -1,0 +1,2 @@
+timestamp,model,input_tokens,output_tokens,input_cost,output_cost,total_cost,session_id
+2026-03-20T21:46:48.783152,anthropic/claude-haiku-4-5,1000,500,$0.000800,$0.001200,$0.002000,unknown
