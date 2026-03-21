@@ -1,5 +1,5 @@
 """
-QuanternionStrategy — FreqTrade strategy with FreqAI + P1-3 confluence + Kelly sizing.
+MainStrategy — FreqTrade strategy with FreqAI + P1-3 confluence + Kelly sizing.
 
 Uses:
 - FreqAI LightGBMRegressor for ML predictions
@@ -19,7 +19,7 @@ import pandas as pd
 from pandas import DataFrame
 
 
-class QuanternionStrategy(IStrategy):
+class MainStrategy(IStrategy):
     """FreqTrade strategy wrapping P1-3 + ML system."""
     
     # Strategy settings

@@ -68,7 +68,7 @@
             "max_depth": 7
         }
     },
-    "bot_name": "QuanternionBot",
+    "bot_name": "MainBot",
     "initial_state": "running",
     "force_entry_enable": false,
     "internals": {
