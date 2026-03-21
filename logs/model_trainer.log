@@ -1,0 +1,56 @@
+2026-03-21 07:12:42,675 INFO Loading data from data/processed/labeled_4h.csv
+2026-03-21 07:12:43,284 INFO Data: 52560 rows, 49 features, label dist={-1: 22584, 0: 15897, 1: 14079}
+2026-03-21 07:12:43,285 INFO === LightGBM Walk-Forward CV ===
+2026-03-21 07:12:49,919 INFO Fold 1: {'accuracy': 49.01, 'win_rate': 61.48, 'precision': 34.71, 'recall': 27.49, 'f1': 30.68, 'auc': 0.554, 'fold': 1, 'train_size': 39418, 'test_size': 3285}
+2026-03-21 07:12:56,633 INFO Fold 2: {'accuracy': 43.17, 'win_rate': 60.07, 'precision': 22.58, 'recall': 11.67, 'f1': 15.38, 'auc': 0.4726, 'fold': 2, 'train_size': 42703, 'test_size': 3285}
+2026-03-21 07:13:06,496 INFO Fold 3: {'accuracy': 42.8, 'win_rate': 59.82, 'precision': 34.35, 'recall': 20.69, 'f1': 25.82, 'auc': 0.569, 'fold': 3, 'train_size': 45988, 'test_size': 3285}
+2026-03-21 07:13:11,648 INFO Fold 4: {'accuracy': 40.88, 'win_rate': 58.24, 'precision': 40.49, 'recall': 9.32, 'f1': 15.15, 'auc': 0.522, 'fold': 4, 'train_size': 49273, 'test_size': 3285}
+2026-03-21 07:13:11,652 INFO LGB CV avg: {'accuracy': 43.96, 'win_rate': 59.9, 'f1': 21.76}
+2026-03-21 07:13:11,652 INFO Training final LGB on full data...
+2026-03-21 07:13:20,908 INFO LGB model saved → /home/sandro/.openclaw/workspace/trading/models/phase5_lgb.pkl
+2026-03-21 07:13:20,911 INFO LGB top features:
+               feature  importance
+28               month        2696
+45           vol_ratio        2021
+0                  adx        1878
+18            hist_vol        1638
+3              atr_pct        1493
+6             bb_width        1255
+31  price_vs_ema_trend        1156
+15           ema_ratio        1067
+35              roc_20        1046
+12         day_of_week        1042
+2026-03-21 07:13:20,911 INFO === XGBoost Walk-Forward CV ===
+2026-03-21 07:13:24,788 INFO Fold 1: {'accuracy': 49.53, 'win_rate': 61.97, 'precision': 35.78, 'recall': 28.49, 'f1': 31.72, 'auc': 0.5516, 'fold': 1, 'train_size': 39418, 'test_size': 3285}
+2026-03-21 07:13:32,772 INFO Fold 2: {'accuracy': 46.73, 'win_rate': 62.75, 'precision': 26.64, 'recall': 11.25, 'f1': 15.82, 'auc': 0.4717, 'fold': 2, 'train_size': 42703, 'test_size': 3285}
+2026-03-21 07:13:36,901 INFO Fold 3: {'accuracy': 44.72, 'win_rate': 62.63, 'precision': 37.88, 'recall': 16.47, 'f1': 22.96, 'auc': 0.6086, 'fold': 3, 'train_size': 45988, 'test_size': 3285}
+2026-03-21 07:13:44,939 INFO Fold 4: {'accuracy': 41.95, 'win_rate': 58.96, 'precision': 43.72, 'recall': 8.98, 'f1': 14.9, 'auc': 0.5539, 'fold': 4, 'train_size': 49273, 'test_size': 3285}
+2026-03-21 07:13:44,940 INFO XGB CV avg: {'accuracy': 45.73, 'win_rate': 61.58, 'f1': 21.35}
+2026-03-21 07:13:44,940 INFO Training final XGB on full data...
+2026-03-21 07:13:49,305 INFO XGB model saved → /home/sandro/.openclaw/workspace/trading/models/phase5_xgb.pkl
+2026-03-21 07:14:05,936 INFO Loading data/processed/labeled_4h.csv
+2026-03-21 07:14:06,767 INFO Data: 52560 rows × 49 features
+2026-03-21 07:14:06,767 INFO Starting LGB Optuna search (200 trials)...
+2026-03-21 07:15:12,299 INFO MetaLabeler trained. meta_labels dist: [ 9096 30322]
+2026-03-21 07:15:12,912 INFO Fold 1: all_wr=61.66% gated_wr=58.55% gate%=62.3%
+2026-03-21 07:16:48,658 INFO MetaLabeler trained. meta_labels dist: [10614 32089]
+2026-03-21 07:16:49,213 INFO Fold 2: all_wr=61.84% gated_wr=57.78% gate%=57.3%
+2026-03-21 07:18:28,270 INFO MetaLabeler trained. meta_labels dist: [11709 34279]
+2026-03-21 07:18:29,049 INFO Fold 3: all_wr=61.11% gated_wr=60.45% gate%=71.7%
+2026-03-21 07:20:00,519 INFO MetaLabeler trained. meta_labels dist: [13355 35918]
+2026-03-21 07:20:01,647 INFO Fold 4: all_wr=58.42% gated_wr=59.53% gate%=59.5%
+2026-03-21 07:21:42,989 INFO MetaLabeler trained. meta_labels dist: [14335 38225]
+2026-03-21 07:21:43,125 INFO MetaLabeler saved → /home/sandro/.openclaw/workspace/trading/models/phase5_meta.pkl
+2026-03-21 07:23:04,904 INFO MetaLabeler trained. meta_labels dist: [ 9096 30322]
+2026-03-21 07:23:05,447 INFO Fold 1: gated_wr=42.46% sharpe=-0.254 dd=-307.14% pf=0.984
+2026-03-21 07:24:38,407 INFO MetaLabeler trained. meta_labels dist: [10614 32089]
+2026-03-21 07:24:38,974 INFO Fold 2: gated_wr=50.59% sharpe=5.077 dd=-69.84% pf=1.365
+2026-03-21 07:25:47,845 INFO MetaLabeler trained. meta_labels dist: [11709 34279]
+2026-03-21 07:25:48,375 INFO Fold 3: gated_wr=55.02% sharpe=7.944 dd=-29.99% pf=1.631
+2026-03-21 07:27:16,175 INFO MetaLabeler trained. meta_labels dist: [13355 35918]
+2026-03-21 07:27:16,706 INFO Fold 4: gated_wr=46.37% sharpe=2.251 dd=-88.43% pf=1.153
+2026-03-21 07:58:05,583 INFO Best LGB: win_rate=66.1% params={'n_estimators': 107, 'max_depth': 8, 'lgb_num_leaves': 20, 'lgb_learning_rate': 0.013643177521121486, 'lgb_min_child_samples': 47, 'lgb_subsample': 0.689667143835954, 'lgb_colsample_bytree': 0.6306512419040966, 'lgb_reg_alpha': 0.7060103225751383, 'lgb_reg_lambda': 0.8503816411142645}
+2026-03-21 07:58:07,680 INFO LGB model saved → /home/sandro/.openclaw/workspace/trading/models/phase5_lgb_opt.pkl
+2026-03-21 07:58:07,700 INFO Starting XGB Optuna search (200 trials)...
+2026-03-21 08:24:46,322 INFO Best XGB: win_rate=66.3% params={'n_estimators': 195, 'xgb_max_depth': 3, 'xgb_learning_rate': 0.011670736268369824, 'xgb_min_child_weight': 16, 'xgb_subsample': 0.5513044248115022, 'xgb_colsample_bytree': 0.9546065739382353, 'xgb_reg_alpha': 0.5326194991007842, 'xgb_reg_lambda': 2.2610196043727693}
+2026-03-21 08:24:48,709 INFO XGB model saved → /home/sandro/.openclaw/workspace/trading/models/phase5_xgb_opt.pkl

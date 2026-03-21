@@ -1,0 +1,48 @@
+2026-03-21 07:10:10,805 INFO BTCUSDT/1h: full download from 2024-03-21
+2026-03-21 07:10:18,574 INFO BTCUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/BTCUSDT_1h.csv
+2026-03-21 07:10:18,575 INFO BTCUSDT/4h: full download from 2024-03-21
+2026-03-21 07:10:20,434 INFO BTCUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/BTCUSDT_4h.csv
+2026-03-21 07:10:20,434 INFO ETHUSDT/1h: full download from 2024-03-21
+2026-03-21 07:10:26,303 INFO ETHUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/ETHUSDT_1h.csv
+2026-03-21 07:10:26,303 INFO ETHUSDT/4h: full download from 2024-03-21
+2026-03-21 07:10:27,912 INFO ETHUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/ETHUSDT_4h.csv
+2026-03-21 07:10:27,912 INFO SOLUSDT/1h: full download from 2024-03-21
+2026-03-21 07:10:33,718 INFO SOLUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/SOLUSDT_1h.csv
+2026-03-21 07:10:33,718 INFO SOLUSDT/4h: full download from 2024-03-21
+2026-03-21 07:10:35,306 INFO SOLUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/SOLUSDT_4h.csv
+2026-03-21 07:10:35,306 INFO BNBUSDT/1h: full download from 2024-03-21
+2026-03-21 07:10:41,243 INFO BNBUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/BNBUSDT_1h.csv
+2026-03-21 07:10:41,244 INFO BNBUSDT/4h: full download from 2024-03-21
+2026-03-21 07:10:42,825 INFO BNBUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/BNBUSDT_4h.csv
+2026-03-21 07:10:42,825 INFO XRPUSDT/1h: full download from 2024-03-21
+2026-03-21 07:10:48,656 INFO XRPUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/XRPUSDT_1h.csv
+2026-03-21 07:10:48,657 INFO XRPUSDT/4h: full download from 2024-03-21
+2026-03-21 07:10:50,493 INFO XRPUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/XRPUSDT_4h.csv
+2026-03-21 07:10:50,493 INFO DOGEUSDT/1h: full download from 2024-03-21
+2026-03-21 07:10:56,220 INFO DOGEUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/DOGEUSDT_1h.csv
+2026-03-21 07:10:56,220 INFO DOGEUSDT/4h: full download from 2024-03-21
+2026-03-21 07:10:57,790 INFO DOGEUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/DOGEUSDT_4h.csv
+2026-03-21 07:10:57,790 INFO AVAXUSDT/1h: full download from 2024-03-21
+2026-03-21 07:11:05,344 INFO AVAXUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/AVAXUSDT_1h.csv
+2026-03-21 07:11:05,344 INFO AVAXUSDT/4h: full download from 2024-03-21
+2026-03-21 07:11:07,614 INFO AVAXUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/AVAXUSDT_4h.csv
+2026-03-21 07:11:07,614 INFO LINKUSDT/1h: full download from 2024-03-21
+2026-03-21 07:11:14,867 INFO LINKUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/LINKUSDT_1h.csv
+2026-03-21 07:11:14,867 INFO LINKUSDT/4h: full download from 2024-03-21
+2026-03-21 07:11:16,459 INFO LINKUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/LINKUSDT_4h.csv
+2026-03-21 07:11:16,460 INFO ARBUSDT/1h: full download from 2024-03-21
+2026-03-21 07:11:22,647 INFO ARBUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/ARBUSDT_1h.csv
+2026-03-21 07:11:22,647 INFO ARBUSDT/4h: full download from 2024-03-21
+2026-03-21 07:11:24,258 INFO ARBUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/ARBUSDT_4h.csv
+2026-03-21 07:11:24,259 INFO OPUSDT/1h: full download from 2024-03-21
+2026-03-21 07:11:30,003 INFO OPUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/OPUSDT_1h.csv
+2026-03-21 07:11:30,004 INFO OPUSDT/4h: full download from 2024-03-21
+2026-03-21 07:11:31,599 INFO OPUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/OPUSDT_4h.csv
+2026-03-21 07:11:31,600 INFO PEPEUSDT/1h: full download from 2024-03-21
+2026-03-21 07:11:37,359 INFO PEPEUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/PEPEUSDT_1h.csv
+2026-03-21 07:11:37,360 INFO PEPEUSDT/4h: full download from 2024-03-21
+2026-03-21 07:11:38,967 INFO PEPEUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/PEPEUSDT_4h.csv
+2026-03-21 07:11:38,967 INFO WIFUSDT/1h: full download from 2024-03-21
+2026-03-21 07:11:45,292 INFO WIFUSDT/1h: saved 17520 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/WIFUSDT_1h.csv
+2026-03-21 07:11:45,293 INFO WIFUSDT/4h: full download from 2024-03-21
+2026-03-21 07:11:46,902 INFO WIFUSDT/4h: saved 4380 rows → /home/sandro/.openclaw/workspace/trading/data/binance_raw/WIFUSDT_4h.csv
