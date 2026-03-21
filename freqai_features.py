@@ -38,6 +38,8 @@ class TradingFeatures:
         'btc_rsi', 'btc_trend', 'btc_atr_pct', 'btc_roc_10',
         # Group 6: Temporal (4)
         'hour_sin', 'hour_cos', 'dow_sin', 'dow_cos',
+        # Group 7: Confluence
+        'confluence_score',
     ]
 
     def compute(self, df_1h: pd.DataFrame, df_15m: pd.DataFrame = None,
@@ -175,6 +177,20 @@ class TradingFeatures:
         else:
             for name in ['hour_sin', 'hour_cos', 'dow_sin', 'dow_cos']:
                 out[name] = np.zeros(n)
+
+        # --- Group 7: Confluence score approximation ---
+        rsi_v = out['rsi_14']
+        adx_v = out['adx_14']
+        bb_v = out['bb_pct_b']
+        ema_v = out['ema_8_21_ratio']
+        vol_v = out['vol_ratio_20']
+        cscore = np.zeros(n)
+        cscore += np.where((rsi_v < 30) | (rsi_v > 70), 20, np.where((rsi_v < 40) | (rsi_v > 60), 10, 0))
+        cscore += np.where(adx_v > 25, 15, np.where(adx_v > 20, 5, 0))
+        cscore += np.where((bb_v < 0.1) | (bb_v > 0.9), 15, np.where((bb_v < 0.2) | (bb_v > 0.8), 5, 0))
+        cscore += np.where(np.abs(ema_v - 1) > 0.002, 15, 0)
+        cscore += np.where(vol_v > 1.5, 15, np.where(vol_v > 1.2, 5, 0))
+        out['confluence_score'] = np.clip(cscore, 0, 100)
 
         # --- Assemble ---
         result = pd.DataFrame({col: out[col] for col in self.EXPECTED_COLUMNS})
