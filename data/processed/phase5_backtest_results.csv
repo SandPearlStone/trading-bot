@@ -1,0 +1,5 @@
+fold,train_rows,test_rows,gated_win_rate,gated_sharpe,gated_max_drawdown,gated_profit_factor,gated_total_trades,gated_gated_trades,gated_avg_return_r,gated_total_pnl_r,ungated_win_rate,ungated_sharpe,ungated_max_drawdown,ungated_profit_factor,ungated_total_trades,ungated_gated_trades,ungated_avg_return_r,ungated_total_pnl_r
+1,39418,3285,42.46,-0.254,-307.14,0.984,2046,2046,-0.0093,-19.0,45.72,1.851,-191.72,1.123,3285,3285,0.0689,226.5
+2,42703,3285,50.59,5.077,-69.84,1.365,1882,1882,0.1942,365.5,49.44,4.284,-165.37,1.304,3285,3285,0.1623,533.0
+3,45988,3285,55.02,7.944,-29.99,1.631,2355,2355,0.3025,712.5,54.12,7.207,-44.94,1.573,3285,3285,0.2694,885.0
+4,49273,3285,46.37,2.251,-88.43,1.153,1953,1953,0.0832,162.5,45.58,1.747,-94.99,1.117,3285,3285,0.0645,212.0

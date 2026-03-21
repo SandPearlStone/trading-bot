@@ -45,6 +45,13 @@ except ImportError:
     print("[find_trades] WARNING: trades not available — journal disabled")
     add_trade = None  # type: ignore
 
+try:
+    from phase5.deploy import phase5_score
+    _PHASE5_AVAILABLE = True
+except ImportError:
+    _PHASE5_AVAILABLE = False
+    phase5_score = None  # type: ignore
+
 
 # ── Rich report formatter ─────────────────────────────────────────────────────
 
@@ -244,6 +251,8 @@ def main() -> None:
     parser.add_argument("--no-entry",   action="store_true",      help="Skip entry timing check (faster)")
     parser.add_argument("--no-journal", action="store_true",      help="Skip trade journal prompt")
     parser.add_argument("--with-ml",    action="store_true",      help="Enable ML confidence scoring (Phase 4)")
+    parser.add_argument("--with-phase5", action="store_true",    help="Enable Phase 5 ML ensemble + confidence gate")
+    parser.add_argument("--p5-threshold", type=float, default=0.65, help="Phase 5 confidence threshold (default: 0.65)")
     args = parser.parse_args()
 
     symbols = args.symbols or DEFAULT_SYMBOLS
@@ -255,6 +264,7 @@ def main() -> None:
     print(f"  Min grade: {args.min_grade}")
     print(f"  Alerts:    {'yes' if args.alert else 'no'}")
     print(f"  ML scoring: {'yes (Phase 4)' if args.with_ml else 'no'}")
+    print(f"  Phase 5:   {'yes (ensemble+gate)' if args.with_phase5 else 'no'}")
     print(f"{'─'*43}\n")
 
     # ── Step 1: Scan watchlist ────────────────────────────────────────────────
@@ -267,6 +277,48 @@ def main() -> None:
         check_entry=not args.no_entry,
         use_ml=args.with_ml,
     )
+
+    # ── Phase 5: Overlay ML ensemble + confidence gate ────────────────────────
+    if args.with_phase5 and _PHASE5_AVAILABLE and results:
+        print("Phase 5 — Running ML ensemble + confidence gate...\n")
+        filtered = []
+        for r in results:
+            sym = r.get("symbol", "")
+            p5 = phase5_score(sym + "USDT", threshold=args.p5_threshold)
+            r["phase5"] = p5
+            if not p5.get("available"):
+                # Models not trained yet — include without gate
+                r["phase5_note"] = "models not trained"
+                filtered.append(r)
+                continue
+
+            p5_direction = p5.get("direction", "NEUTRAL")
+            p5_conf      = p5.get("confidence", 0)
+            p5_gate      = p5.get("gate_passed", False)
+            setup_dir    = r.get("direction", "LONG")
+
+            # Confluence check: Phase 5 direction agrees with confluence signal
+            direction_ok = (p5_direction == setup_dir or p5_direction == "NEUTRAL")
+
+            r["phase5_confidence"] = p5_conf
+            r["phase5_direction"]  = p5_direction
+            r["phase5_gate"]       = p5_gate
+
+            if p5_gate and direction_ok:
+                r["confluence_reasons"] = r.get("confluence_reasons", []) + [
+                    f"Phase 5 ML: {p5_direction} conf={p5_conf:.0%} ✓"
+                ]
+                filtered.append(r)
+                print(f"  ✓ {sym}: conf={p5_conf:.2f} direction={p5_direction} — PASSED")
+            else:
+                print(f"  ✗ {sym}: conf={p5_conf:.2f} direction={p5_direction} — GATED OUT")
+
+        if filtered:
+            results = filtered
+            print(f"\n  Phase 5: {len(results)} setups passed confidence gate")
+        else:
+            print(f"\n  Phase 5: No setups passed confidence gate — showing all results anyway")
+        print()
 
     if not results:
         print(f"\nNo {args.min_grade}+ grade setups found. Try a lower --min-grade or different symbols.")

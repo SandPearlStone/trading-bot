@@ -1,0 +1,5 @@
+model,win_rate,sharpe,max_drawdown,profit_factor,avg_trades
+Phase 5 (ML Ensemble),48.61,3.754,-123.85,1.283,2059.0
+Phase1,43.658,0.033,-116.779,1.105,
+Phase2,42.759,0.013,-100.145,1.06,
+Phase4,42.787,0.014,-100.145,1.062,
