@@ -3,3 +3,14 @@ __pycache__/
 *.pyo
 .env
 *.env
+*.db
+*.pkl
+data/binance_raw/*.csv
+data/processed/*.csv
+freqtrade_userdata/data/
+freqtrade_userdata/freqaimodels/
+freqtrade_userdata/backtest_results/
+freqtrade_userdata/logs/
+freqtrade_userdata/plot/
+signals/
+logs/*.db
