@@ -1,103 +1,146 @@
-# Trading Toolkit - Phase 1-4 Complete
+# Trading System
 
-**Status:** Production Ready ✅  
-**Phases:** 4 (Signals, Regime, Sizing, ML)  
-**Cost:** 75% API savings via SQLite caching  
-**Last Updated:** 2026-03-20
+Crypto futures trading toolkit with ML-assisted signal generation.
+
+## Architecture
+
+```
+Live Market Data (Binance)
+        ↓
+SQLite Database (market.db: 1.1M+ bars)
+        ↓
+Feature Engineering (47 features, TA-Lib)
+        ↓
+P1-3 Confluence Gate (score ≥ 40)
+        ↓
+ML Filter (LGBMRegressor, |return| > 0.2%)
+        ↓
+LLM Review (contextual analysis)
+        ↓
+Human Decision (manual execution on MEXC)
+        ↓
+Trade Logger (trades.db)
+        ↓
+Weekly Retraining (model improves over time)
+```
+
+## Performance (Backtest)
+
+**FreqTrade backtest: Jul 2024 → Mar 2026 (20 months, 10 pairs)**
+
+| Metric | Value |
+|--------|-------|
+| Starting Balance | $1,000 |
+| Final Balance | $2,125 |
+| Total Profit | +112.5% |
+| CAGR | 57.2% |
+| Sharpe | 8.40 |
+| Sortino | 55.27 |
+| Max Drawdown | 17.08% |
+| Profit Factor | 1.32 |
+| Trades | 2,024 (~3.3/day) |
+| Win Rate | 44.6% |
+| All pairs profitable | ✅ |
+
+Market dropped -23% during this period. System was net profitable through bear market.
+
+## Core Files
+
+### Trading Tools
+| File | Description |
+|------|-------------|
+| `trading_tools.py` | Live scanning: price, TA, confluence, funding, OI |
+| `confluence.py` | Phase 1-3 confluence scoring (FVG, OB, regime, divergence) |
+| `divergence_detector.py` | Hidden divergence detection |
+| `kelly_calculator.py` | Kelly criterion position sizing |
+
+### ML Pipeline
+| File | Description |
+|------|-------------|
+| `freqai_features.py` | 47-feature stable contract (TA-Lib based) |
+| `freqai_labels.py` | Forward return labels with IQR filtering |
+| `freqai_model.py` | LGBMRegressor with walk-forward validation |
+| `backtest_system.py` | Custom backtest (P1-3 + ML vs baselines) |
+
+### FreqTrade Integration
+| File | Description |
+|------|-------------|
+| `freqtrade_userdata/strategies/MainStrategy.py` | FreqAI strategy with P1-3 gate + Kelly |
+| `freqtrade_userdata/config_backtest.json` | Backtest config (10 pairs, futures) |
+
+### Data
+| Source | Location | Size |
+|--------|----------|------|
+| OHLCV 1h/4h | `data/market.db` (ohlcv table) | 262K bars |
+| OHLCV 15m | `data/market.db` (ohlcv_15m table) | 840K bars |
+| OHLCV 5m | `data/market.db` (ohlcv table) | 420K bars |
+| Funding rates | `data/market.db` (funding_rates) | 4.3K rows |
+| Open interest | `data/market.db` (open_interest) | 1.3K rows |
+| Trade log | `trades.db` | User trades |
 
 ## Quick Start
 
+### Prerequisites
+```bash
+# Python venv with all deps
+source /home/sandro/trading-venv/bin/activate
+
+# Key packages: freqtrade, lightgbm, xgboost, ta-lib, ccxt, pandas-ta
+```
+
 ### Scan Market
 ```bash
-python3 find_trades.py --symbols BTCUSDT ETHUSDT --with-ml
+python3 -c "
+from trading_tools import scan_market
+results = scan_market(['BTCUSDT','ETHUSDT','SOLUSDT'])
+for r in results:
+    print(f\"{r['symbol']}: \${r['price']} | RSI={r['rsi_1h']:.0f} | Score={r['confluence_score']} | Grade={r['confluence_grade']}\")
+"
 ```
 
-### Backtest All Phases
+### Run Backtest
 ```bash
-python3 compare_phases.py --with-ml
+# Custom backtest (fast)
+python3 backtest_system.py --symbols BTCUSDT,ETHUSDT,SOLUSDT
+
+# FreqTrade backtest (full, with walk-forward ML retraining)
+freqtrade backtesting \
+  --config freqtrade_userdata/config_backtest.json \
+  --strategy MainStrategy \
+  --freqaimodel LightGBMRegressor \
+  --strategy-path freqtrade_userdata/strategies \
+  --userdir freqtrade_userdata \
+  --timerange 20240701-20260301
 ```
 
-### Monitor Active Trades
+### Live Data Ingestion
 ```bash
-python3 monitor_positions.py --watch 5
+# Cron (already configured):
+# */5 * * * * python3 scripts/ingest_live.py
 ```
 
-## System Architecture
+## Feature Contract (47 features)
 
-**Phase 1:** Signal Rebalancing
-- RSI divergence: 5pts → 12pts
-- MACD divergence: +5pts (new)
-- Sentiment gating (F&G, BTC dominance)
+| Group | Features | Count |
+|-------|----------|-------|
+| Base TA (1h) | RSI, MACD, ATR, BB, ADX, EMA ratios, vol, ROC, stoch, MFI | 19 |
+| Shifted | T-1, T-2, T-5 lags for key indicators | 10 |
+| 15m context | RSI, EMA slope, vol spike, momentum, trend | 5 |
+| 4h context | RSI, trend, ADX, ATR% | 4 |
+| BTC context | RSI, trend, ATR%, ROC | 4 |
+| Temporal | hour/dow sin/cos | 4 |
+| Confluence | Approximated P1-3 score | 1 |
 
-**Phase 2:** Regime Detection + Hidden Divergence
-- ATR-based regime (CHOPPY/NORMAL/TRENDING/VOLATILE)
-- Hidden divergence detection (+2-3% edge)
-- Adaptive min_score by regime
+## Symbols
+BTC, ETH, SOL, BNB, XRP, DOGE, AVAX, LINK, ARB, OP, PEPE, WIF
 
-**Phase 3:** Kelly Position Sizing
-- Dynamic f* calculation
-- Conservative: f*/4 baseline with regime multipliers
+## Stack
+- **FreqTrade 2026.2** + FreqAI
+- **LightGBM** (primary model)
+- **TA-Lib** + pandas-ta (indicators)
+- **CCXT** (exchange connectivity)
+- **SQLite** (data storage)
+- **Kelly criterion** (position sizing, f*/4)
 
-**Phase 4:** ML Signal Weighting
-- RandomForest (100 trees, 14 features)
-- 70% confluence + 30% ML blend
-- 57% test accuracy on 210 trades
-
-## Files
-
-Core:
-- `confluence.py` - Unified Phase 1-4 scoring
-- `db.py` - SQLite OHLCV cache
-- `regime_detector.py` - Phase 2 regime classification
-- `divergence_detector.py` - Hidden divergence detection
-- `kelly_calculator.py` - Phase 3 position sizing
-- `ml_scorer.py` - Phase 4 ML integration
-
-Tools:
-- `find_trades.py` - Market scanner
-- `compare_phases.py` - Backtester
-- `monitor_positions.py` - Trade manager
-- `daily_summary.py` - P&L reporter
-- `alert_on_grade.py` - Grade-based alerts
-
-## Database
-
-SQLite cache at `/data/trades.db`:
-- OHLCV: 12 symbols × 2 TF × 500 candles = 12K rows
-- Trades: Auto-logged on close
-- Positions: Live tracking
-- Cost savings: 75% API reduction ($25/mo → $2-3/mo)
-
-## ML Model
-
-Model: `phase4_model.pkl` (RandomForest, 656 KB)
-- Features: regime (one-hot) + technical signals
-- Training: 210 trades × 15 features
-- CV: 69.04% accuracy, 57.14% test
-- Blend: 70% raw confluence + 30% ML confidence
-
-## Cost Tracking
-
-See parent directory for:
-- `cost_monitor.py` - SQLite cost logger
-- `prometheus_exporter.py` - Real-time metrics (port 9200)
-- `grafana_dashboard.json` - Visualization
-
-## Deployment
-
-Tested on:
-- Python 3.12.3
-- MEXC futures
-- 10x leverage
-- Kelly f*/4 position sizing
-
-## Next Steps
-
-1. Paper trade Phase 1-4 (2 weeks)
-2. Collect 100+ real trades for Phase 5
-3. Retrain Phase 4 model monthly
-4. Monitor cost dashboard
-
----
-
-**Ready for production. Deploy with confidence. 🚀**
+## License
+Private. Not for redistribution.
